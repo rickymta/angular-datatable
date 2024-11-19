@@ -1,6 +1,8 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import {CommonModule} from "@angular/common";
 import {FormsModule} from "@angular/forms";
+import {ColumnModel} from "./models/column.model";
+import {SortModel} from "./models/sort.model";
 
 @Component({
   selector: 'app-datatable',
@@ -9,76 +11,81 @@ import {FormsModule} from "@angular/forms";
   templateUrl: './datatable.component.html',
   styleUrl: './datatable.component.scss'
 })
-export class DatatableComponent implements OnInit{
-  @Input() columns: string[] = [];
-  @Input() data: any[] = [];
+export class DatatableComponent {
+  sortModel: SortModel = new SortModel('', 0);
 
-  pageSizeOptions: number[] = [20, 50, 100];
-  pageSize: number = 20;
-  currentPage: number = 1;
-  paginatedData: any[] = [];
-  totalItems: number = 0;
-  totalPage: number = 0;
-
-  sortColumn: string = '';
-  sortDirection: 'asc' | 'desc' = 'asc';
-
-  pages: any[] = [];
-  searchText: string = '';
+  // Để lưu trữ trạng thái tìm kiếm từng cột
   columnSearch: { [key: string]: string } = {};
 
-  searchColumnIndex: number | null = null;
+  // Key của cột có dropdown mở
+  dropdownOpen: string | null = null;
 
-  constructor() {}
+  @Input() totalItems: number = 0;        // Tổng số bản ghi
+  @Input() currentPage: number = 1;        // Trang hiện tại
+  @Input() data: any[] = [];               // Dữ liệu của trang hiện tại
+  @Input() columns: ColumnModel[] = [];
+  @Input() pageSizeOptions: number[] = [10, 20, 50, 100]; // Các tùy chọn số lượng bản ghi mỗi trang
+  @Input() pageSize: number = 10; // Số lượng bản ghi mặc định mỗi trang
 
-  ngOnInit(): void {
-    this.updatePagination();
+  @Output() pageChange = new EventEmitter<number>();  // Event chuyển trang
+  @Output() search = new EventEmitter<string>();      // Event tìm kiếm
+  @Output() sort = new EventEmitter<SortModel>(); // Event sắp xếp
+  @Output() pageSizeChange = new EventEmitter<number>(); // Sự kiện thay đổi số lượng bản ghi
+
+  // Cập nhật phân trang khi thay đổi số lượng bản ghi
+  onPageSizeChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    this.pageSize = +value;
+    this.pageSizeChange.emit(this.pageSize);
+    this.pageChange.emit(1); // Quay lại trang đầu tiên
   }
 
+  totalPage: number = 0;
+  pages: any[] = [];
+
+  constructor() {
+    this.updatePagination();  // Cập nhật phân trang khi khởi tạo
+  }
+
+  ngOnChanges(): void {
+    this.updatePagination();  // Cập nhật phân trang khi có thay đổi đầu vào
+  }
+
+  // Cập nhật phân trang dựa trên tổng số bản ghi và trang hiện tại
   updatePagination(): void {
-    this.totalItems = this.data.length;
     this.totalPage = Math.ceil(this.totalItems / this.pageSize);
     this.pages = [];
 
-    const maxPagesToShow = 5; // Giới hạn số trang hiển thị (số lượng trang muốn hiển thị trước khi dùng dấu ba chấm)
-
-    // Nếu số trang quá lớn, sử dụng dấu ba chấm
-    if (this.totalPage <= maxPagesToShow) {
-      // Nếu tổng số trang ít hơn hoặc bằng maxPagesToShow, hiển thị tất cả các trang
+    if (this.totalPage <= 7) {
       for (let i = 1; i <= this.totalPage; i++) {
         this.pages.push(i);
       }
     } else {
-      const halfRange = Math.floor(maxPagesToShow / 2);
       let startPage: number, endPage: number;
 
-      // Logic khi ở giữa (không phải trang đầu và cuối)
-      if (this.currentPage <= halfRange) {
-        startPage = 2;
-        endPage = Math.min(maxPagesToShow, this.totalPage - 1); // Tránh vượt quá tổng số trang
-      } else if (this.currentPage >= this.totalPage - halfRange) {
-        startPage = Math.max(this.totalPage - maxPagesToShow + 1, 2); // Đảm bảo không vượt quá trang cuối
-        endPage = this.totalPage - 1;
+      if (this.currentPage === 1) {
+        startPage = 1;
+        endPage = Math.min(6, this.totalPage);
+      } else if (this.currentPage === this.totalPage) {
+        startPage = Math.max(this.totalPage - 5, 1);
+        endPage = this.totalPage;
+        this.pages.unshift(this.totalPage - 5);
       } else {
-        startPage = this.currentPage - halfRange;
-        endPage = this.currentPage + halfRange;
+        startPage = Math.max(this.currentPage - 3, 1);
+        endPage = Math.min(this.currentPage + 3, this.totalPage);
       }
 
-      // Thêm các trang vào mảng
       for (let i = startPage; i <= endPage; i++) {
         this.pages.push(i);
       }
 
-      // Thêm dấu ba chấm nếu cần thiết ở phía đầu hoặc cuối
-      if (startPage > 2) {
+      if (startPage > 1) {
         this.pages.unshift('...');
       }
-
-      if (endPage < this.totalPage - 1) {
+      if (endPage < this.totalPage) {
         this.pages.push('...');
       }
 
-      // Luôn hiển thị trang đầu và trang cuối
       if (!this.pages.includes(1)) {
         this.pages.unshift(1);
       }
@@ -86,73 +93,48 @@ export class DatatableComponent implements OnInit{
         this.pages.push(this.totalPage);
       }
     }
-
-    const startIndex = (this.currentPage - 1) * this.pageSize;
-    const endIndex = startIndex + this.pageSize;
-    this.paginatedData = this.filteredData().slice(startIndex, endIndex);
   }
 
+  // Xử lý khi người dùng chuyển trang
   goToPage(page: number): void {
-    this.currentPage = page;
-    this.updatePagination();
+    if (page >= 1 && page <= this.totalPage && page !== this.currentPage) {
+      this.pageChange.emit(page);
+    }
   }
 
-  changePageSize(event: Event): void {
-    const value = (event.target as HTMLSelectElement).value;
-    this.pageSize = +value; // Ép kiểu sang số nguyên
-    this.currentPage = 1; // Quay lại trang đầu
-    this.updatePagination();
+  // Xử lý sự kiện tìm kiếm
+  onSearch(query: string): void {
+    this.search.emit(query);
   }
 
-  sort(column: string): void {
-    if (this.sortColumn === column) {
-      // Đảo ngược hướng sắp xếp nếu click cùng một cột
-      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+  // Xử lý sự kiện sắp xếp
+  onSort(column: string, direction: -1 | 0 | 1): void {
+    let columnModel = this.columns.find((c) => c.key === column);
+
+    if (direction === 0) {
+      columnModel!.sortIcon = 'assets/icons/sort-icon.png';
+      this.sortModel.direction = 1;
+    } else if (direction === 1) {
+      columnModel!.sortIcon = 'assets/icons/sort-asc.png';
+      this.sortModel.direction = -1;
     } else {
-      // Thiết lập cột và hướng sắp xếp mới
-      this.sortColumn = column;
-      this.sortDirection = 'asc';
+      columnModel!.sortIcon = 'assets/icons/sort-desc.png';
+      this.sortModel.direction = 0;
     }
 
-    // Sắp xếp dữ liệu
-    this.data.sort((a, b) => {
-      const valA = a[column];
-      const valB = b[column];
-
-      if (valA < valB) {
-        return this.sortDirection === 'asc' ? -1 : 1;
-      }
-      if (valA > valB) {
-        return this.sortDirection === 'asc' ? 1 : -1;
-      }
-      return 0;
-    });
-
-    this.currentPage = 1; // Quay lại trang đầu
-    this.updatePagination(); // Cập nhật dữ liệu phân trang
+    this.sort.emit({ column, direction });
   }
 
-  onColumnSearch(event: Event, column: string): void {
-    this.columnSearch[column] = (event.target as HTMLInputElement).value;
-    this.updatePagination();
+  // Hàm mở hoặc đóng dropdown
+  toggleDropdown(columnKey: string): void {
+    this.dropdownOpen = this.dropdownOpen === columnKey ? null : columnKey;
   }
 
-  filteredData(): any[] {
-    return this.data.filter(row => {
-      if (this.searchText) {
-        return Object.values(row).some(val =>
-          String(val).toLowerCase().includes(this.searchText.toLowerCase())
-        );
-      }
-      return Object.keys(this.columnSearch).every(key => {
-        if (this.columnSearch[key]) {
-          return String(row[key]).toLowerCase().includes(this.columnSearch[key].toLowerCase());
-        }
-        return true;
-      });
-    });
+  // Hàm xử lý tìm kiếm theo cột
+  onColumnSearch(columnKey: string): void {
+    const searchValue = this.columnSearch[columnKey];
+    console.log(`Search for column: ${columnKey}, value: ${searchValue}`);
+    // Gửi sự kiện hoặc gọi API tìm kiếm theo cột
+    // Ví dụ: this.columnSearchEvent.emit({ column: columnKey, value: searchValue });
   }
-
-  protected readonly Math = Math;
-  protected readonly HTMLSelectElement = HTMLSelectElement;
 }

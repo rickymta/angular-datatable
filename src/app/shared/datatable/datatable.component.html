@@ -1,53 +1,17 @@
 <div>
-  <div style="margin-bottom: 10px;">
-    <input
-      class="form-control"
-      type="text"
-      placeholder="Search all columns..."
-      [(ngModel)]="searchText"
-      (input)="updatePagination()" />
-  </div>
-
-  <!-- Bảng dữ liệu -->
-  <table border="1" style="width: 100%; border-collapse: collapse;">
-    <thead>
-    <tr>
-      <th *ngFor="let column of columns; let i = index" (click)="sort(column)" style="cursor: pointer;">
-        {{ column }}
-        <!-- Hiển thị biểu tượng sắp xếp -->
-        <span *ngIf="sortColumn === column">
-            {{ sortDirection === 'asc' ? '↑' : '↓' }}
-          </span>
-
-        <div *ngIf="searchColumnIndex === i" class="column-search-input">
-          <input
-            type="text"
-            [(ngModel)]="columnSearch[column]"
-            (input)="onColumnSearch($event, column)"
-            placeholder="Search"
-            style="margin-top: 5px; width: 100%;" />
-        </div>
-      </th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr *ngFor="let row of paginatedData">
-      <td *ngFor="let column of columns">{{ row[column] }}</td>
-    </tr>
-    </tbody>
-  </table>
-
   <div class="table-footer">
     <div class="volcanion-perpage-show" style="margin: 10px 0;">
       <span>Show </span>
-      <select (change)="changePageSize($event)">
+      <select (change)="onPageSizeChange($event)">
         <option *ngFor="let option of pageSizeOptions" [value]="option">{{ option }}</option>
       </select>
       <span> / {{ totalItems }}</span>
     </div>
 
-    <div  class="volcanion-pagination-wrapper">
-      <button class="volcanion-pagination" [disabled]="currentPage === 1" (click)="goToPage(1)">First</button>
+    <div class="volcanion-pagination-wrapper">
+      <button class="volcanion-pagination" [disabled]="currentPage === 1" (click)="goToPage(1)">
+        First
+      </button>
       <button
         class="volcanion-pagination"
         [disabled]="currentPage === 1"
@@ -70,7 +34,50 @@
         (click)="goToPage(currentPage + 1)">
         Next
       </button>
-      <button class="volcanion-pagination" [disabled]="currentPage === totalPage" (click)="goToPage(totalPage)">Last</button>
+      <button class="volcanion-pagination" [disabled]="currentPage === totalPage" (click)="goToPage(totalPage)">
+        Last
+      </button>
     </div>
   </div>
+
+  <table style="border-collapse: collapse;">
+    <thead>
+    <tr>
+      <th *ngFor="let column of columns">
+        <div class="volcanion-header header-container">
+          <span class="column-title" (click)="toggleDropdown(column.key)">{{ column.title }}</span>
+          <span *ngIf="column.sortable" style="cursor: pointer;" (click)="column.sortable ? onSort(column.key, sortModel.direction) : null">
+            <img src="{{column.sortIcon}}" alt="Sort"/>
+          </span>
+
+          <!-- Dropdown hiển thị input tìm kiếm -->
+          <div
+            class="dropdown"
+            *ngIf="dropdownOpen === column.key"
+          >
+            <input
+              type="text"
+              class="search-input"
+              placeholder="Search {{ column.title }}"
+              [(ngModel)]="columnSearch[column.key]"
+              (input)="onColumnSearch(column.key)"
+            />
+          </div>
+        </div>
+      </th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr *ngFor="let row of data">
+      <td *ngFor="let column of columns">
+        <span *ngIf="column.isImage">
+          <img [src]="row[column.key]" alt="image"/>
+        </span>
+        <span *ngIf="!column.isImage">
+          {{ row[column.key] }}
+        </span>
+      </td>
+    </tr>
+    </tbody>
+  </table>
 </div>
