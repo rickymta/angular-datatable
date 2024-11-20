@@ -102,13 +102,10 @@ export class DatatableComponent {
     }
   }
 
-  // Xử lý sự kiện tìm kiếm
-  onSearch(query: string): void {
-    this.search.emit(query);
-  }
-
   // Xử lý sự kiện sắp xếp
   onSort(column: string, direction: -1 | 0 | 1): void {
+    this.sortModel.direction = 0;
+    this.columns.forEach(x => x.sortIcon = 'assets/icons/sort-icon.png');
     let columnModel = this.columns.find((c) => c.key === column);
 
     if (direction === 0) {
@@ -127,6 +124,7 @@ export class DatatableComponent {
 
   // Hàm mở hoặc đóng dropdown
   toggleDropdown(columnKey: string): void {
+    this.columnSearch = {};
     this.dropdownOpen = this.dropdownOpen === columnKey ? null : columnKey;
   }
 

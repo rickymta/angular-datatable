@@ -1,5 +1,5 @@
-<div>
-  <div class="table-footer">
+<div class="volcanion-data-table">
+  <div class="table-pagination">
     <div class="volcanion-perpage-show" style="margin: 10px 0;">
       <span>Show </span>
       <select (change)="onPageSizeChange($event)">
@@ -42,30 +42,27 @@
 
   <table style="border-collapse: collapse;">
     <thead>
-    <tr>
-      <th *ngFor="let column of columns">
-        <div class="volcanion-header header-container">
-          <span class="column-title" (click)="toggleDropdown(column.key)">{{ column.title }}</span>
-          <span *ngIf="column.sortable" style="cursor: pointer;" (click)="column.sortable ? onSort(column.key, sortModel.direction) : null">
-            <img src="{{column.sortIcon}}" alt="Sort"/>
-          </span>
-
-          <!-- Dropdown hiển thị input tìm kiếm -->
-          <div
-            class="dropdown"
-            *ngIf="dropdownOpen === column.key"
-          >
-            <input
-              type="text"
-              class="search-input"
-              placeholder="Search {{ column.title }}"
-              [(ngModel)]="columnSearch[column.key]"
-              (input)="onColumnSearch(column.key)"
-            />
+      <tr>
+        <th *ngFor="let column of columns">
+          <div class="volcanion-header">
+            <span class="volcanion-column-title" *ngIf="column.searchable" (click)="toggleDropdown(column.key)">{{ column.title }}</span>
+            <span class="volcanion-column-title" *ngIf="!column.searchable">{{ column.title }}</span>
+            <span *ngIf="column.sortable" style="cursor: pointer;" (click)="column.sortable ? onSort(column.key, sortModel.direction) : null">
+              <img src="{{column.sortIcon}}" alt="Sort"/>
+            </span>
+            <!-- Dropdown hiển thị input tìm kiếm -->
+            <div class="volcanion-dropdown" *ngIf="dropdownOpen === column.key">
+              <input
+                type="text"
+                class="volcanion-search-input"
+                placeholder="Search {{ column.title }}"
+                [(ngModel)]="columnSearch[column.key]"
+                (input)="onColumnSearch(column.key)"
+              />
+            </div>
           </div>
-        </div>
-      </th>
-    </tr>
+        </th>
+      </tr>
     </thead>
     <tbody>
     <tr *ngFor="let row of data">

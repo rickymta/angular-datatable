@@ -8,6 +8,7 @@ import {ColumnModel} from "./shared/datatable/models/column.model";
 import {AccountFilterModel} from "./account/models/account-filter.model";
 import {DataPagingModel} from "./account/data-paging.model";
 import {AccountModel} from "./account/models/account.model";
+import {AccountSortModel} from "./account/models/account-sort.model";
 
 @Component({
   selector: 'app-root',
@@ -28,12 +29,12 @@ export class AppComponent {
 
   constructor(private http: HttpClient) {
     this.columns = [
-      new ColumnModel('id', 'Id', true),
-      new ColumnModel('fullname', 'Name', true),
-      new ColumnModel('email', 'Email', true),
-      new ColumnModel('phoneNumber', 'Phone Number', true),
-      new ColumnModel('avatar', 'Avatar', false, true),
-      new ColumnModel('gender', 'Gender', true),
+      new ColumnModel('id', 'Id', true, false, true),
+      new ColumnModel('fullname', 'Name', true, false, true),
+      new ColumnModel('email', 'Email', true, false, true),
+      new ColumnModel('phoneNumber', 'Phone Number', true, false, true),
+      new ColumnModel('avatar', 'Avatar', false, true, false),
+      new ColumnModel('gender', 'Gender', false, false, false),
     ];
     this.loadData();
   }
@@ -66,7 +67,33 @@ export class AppComponent {
   }
 
   onSort(sort: SortModel): void {
-    console.log(sort);
+    let accountSort: AccountSortModel = new AccountSortModel(sort.direction);
+    if (sort.direction === 0) {
+      accountSort = new AccountSortModel(0);
+    } else {
+      switch (sort.column) {
+        case 'id':
+          accountSort.id = true;
+          break;
+        case 'fullname':
+          accountSort.fullName = true;
+          break;
+        case 'email':
+          accountSort.email = true;
+          break;
+        case 'phoneNumber':
+          accountSort.phoneNumber = true;
+          break;
+        case 'avatar':
+          accountSort.avatar = true;
+          break;
+        case 'gender':
+          accountSort.gender = true;
+          break;
+      }
+    }
+
+    console.log(accountSort);
   }
 
   onPageSizeChange(pageSize: number): void {
